@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<title>Shopfront</title>
+<body>
+
+    <!-- BOOTSTRAP -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>    
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">      
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.8/angular-route.js"></script>      
+    
+    <script src="js/app.js"></script>
+
+<style>
+.button {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 5px 9px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+}
+
+table {
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 50%;
+}
+
+td, th {
+    border: 0px solid #dddddd;
+    text-align: center;
+    padding: 8px;
+}
+</style>
+
+<script type="text/javascript">
+
+    // Defines a merchant instance
+    function Merchant(merchantName, merchantAddress) {
+
+        this.merchantName = merchantName;
+        this.merchantAddress = merchantAddress;
+    }    
+
+    function Product(productName, productId, productPrice, productInitialStock) {
+        this.productName = productName;
+        this.productId = productId;
+        this.productPrice = productPrice;
+        this.productInitialStock = productInitialStock;
+        this.productCurrentStock = productInitialStock;
+
+        this.updateStock = function(numPurchasedUnits) {
+            this.productCurrentStock -= numPurchasedUnits;
+        }
+    }
+
+    function Purchase(product, buyer, units) {
+        this.product = product;
+        this.buyer = buyer;
+        this.units = units;
+    }
+
+    // Defines a module for merchant and product registration
+    angular.module('blockchainRegistrationModule', [])
+    .service('blockchainRegistrationService', function() {
+
+        // Adds a new merchant to the blockchain
+        this.registerMerchant = function(merchant, contract, contractOwner) {
+
+            console.log("Adding new merchant to blockchain: "+JSON.stringify(merchant));
+
+            contract.addAdministrator(merchant.merchantAddress, {from: contractOwner})
+            .then(result => alert("Merchant successfully added to contract: "+merchant.merchantName))
+            .catch(err => alert("Could not add merchant: "+merchant.merchantName+" : "+err));
+        }
+
+        this.registerProduct = function(product, merchant, contract) {
+
+            console.log("Adding to blockchain: "+JSON.stringify(product) + " : merchant = "+merchant);
+
+            contract.addProduct(product.productId, product.productPrice, product.productInitialStock, {from: merchant})
+            .then(result => alert("Product successfully added to blockchain."))
+            .catch(err => alert("Could not add product to blockchain: "+JSON.stringify(product)+": merchant = "+merchant +" => " + err));
+        }
+
+        this.removeProduct = function(productId, merchant, contract) {
+
+            console.log("Removing product from blockchain: "+productId+", merchant = "+merchant);
+
+            contract.removeProduct(productId, {from: merchant})
+            .then(res => alert("Product "+productId+" from "+merchant+" successfully removed."))
+            .catch(error => alert("Could not remove from blockchain: product = "+productId+", merchant = "+merchant));
+        }
+
+        this.buy = function(productId, productPrice, buyer, contract) {
+
+            console.log("Notifying blockchain about the purchase: product = "+productId+", price = "+productPrice+", buyer = "+buyer);
+
+            contract.buy(productId, {from: buyer, value: productPrice})
+            .then(res => alert("Purchase successfully done: product = "+productId+", at price = "+productPrice+", from buyer = "+buyer))
+            .catch(err => alert("Could not finish purchase: product = "+productId+", at price = "+productPrice+", from buyer = "+buyer+" : "+err));
+        }
+
+        this.loadBalance = function(merchant, contract) {
+
+            console.log("Retrieving from blockchain: balance from "+merchant);
+
+            contract.getCurrentFunds.call({from: merchant})
+            .then(funds => {alert("Retrieved from blockchain: funds for "+merchant+" = "+funds)})
+            .catch(err => alert("Could not retrieve balance for merchant "+merchant+" : "+err));
+        }
+    });
+
+    // Defines a module for keeping the application data
+    angular.module('dataKeepingModule', [])
+    .service('dataKeepingService', function() {
+
+        this.contract = "";
+        this.contractOwner = "";
+
+        this.merchants = [];
+
+        this.products = {};
+
+        this.purchases = [];
+
+        this.setContract = function(contract) {
+            this.contract = contract;
+            console.log("Contract set: "+contract);
+        }
+        this.getContract = function() {
+            return this.contract;
+        }
+
+        this.setContractOwner = function(contractOwner) {
+            this.contractOwner = contractOwner;
+            console.log("New contract owner set: "+contractOwner);
+        }
+        this.getContractOwner = function() {
+            return this.contractOwner;
+        }
+
+        this.addMerchant = function(merchant) {
+            this.merchants.push(merchant);
+        }
+        this.getAllMerchants = function() {
+            return this.merchants;
+        }
+
+        this.addProduct = function(product, merchantAddress) {
+            this.products[merchantAddress] = this.products[merchantAddress] || {};
+            this.products[merchantAddress][product.productId] = product;
+        }
+        this.getProduct = function(productId, merchant) {
+            return this.products[merchant][productId];
+        }
+        this.getProductsByMerchant = function(merchantAddress) {
+            return this.products[merchantAddress];
+        }
+        this.removeProduct = function(productId, merchant) {
+            var merchantProducts = this.products[merchant];
+            console.log("Removing product: "+JSON.stringify(merchantProducts[productId])+", merchant = "+merchant);
+            delete merchantProducts[productId];
+        }   
+        this.notifyPurchase = function(productId, merchant, buyer, units) {
+            console.log("Purchase: produce = "+productId+", units = "+units+", merchant = "+merchant);
+            this.products[merchant][productId].updateStock(units);
+            this.addPurchase(productId, merchant, buyer, units);
+        }
+
+        this.addPurchase = function(productId, merchant, buyer, units) {
+
+            var product = this.getProduct(productId, merchant);
+
+            var purchase = new Purchase(product, buyer, units);
+
+            console.log("Adding purchase for buyer: " +buyer + " : "+JSON.stringify(purchase));
+
+            this.purchases.push(purchase);
+        } 
+        this.getAllPurchases = function() {
+            console.log("Total purchases: "+this.purchases.length+". Returning all.");
+            return this.purchases;
+        }
+    });
+
+    // Defines the Angular application
+    var app = angular.module('app', [ 'ngRoute', 'dataKeepingModule', 'blockchainRegistrationModule' ]);    
+
+    // Defines the controller responsible for the application
+    app.controller("ShopfrontController", function($scope, dataKeepingService, blockchainRegistrationService) {
+
+        console.log("Creating controller");
+
+        $scope.contract = dataKeepingService.getContract();
+
+        $scope.merchants = dataKeepingService.getAllMerchants();  
+
+        $scope.merchantProducts = [];      
+
+        $scope.purchases = dataKeepingService.getAllPurchases();
+
+        if (!dataKeepingService.getContract() || !dataKeepingService.getContractOwner()) {
+            // Loads contract instance and owner at application startup
+            $scope.loadContractData = function() {                        
+                Shopfront.deployed()
+                .then(contract => {                    
+
+                    dataKeepingService.setContract(contract);
+                    return contract.owner.call();
+                })
+                .then(contractOwner => dataKeepingService.setContractOwner(contractOwner))
+                .catch(err => alert("Could not retrieve contract data: "+err));
+            }
+        }
+        // Adds a new merchant
+        $scope.addMerchant = function() {
+
+            if (!$scope.merchantName) {
+                alert("Provide the merchant name.");
+                return;                
+            }
+
+            if (!$scope.merchantAddress) {
+                alert("Provide the merchant address.");
+                return;
+            }
+
+            var merchant = new Merchant($scope.merchantName, $scope.merchantAddress)
+
+            blockchainRegistrationService.registerMerchant(merchant, dataKeepingService.getContract(), dataKeepingService.getContractOwner());
+
+            dataKeepingService.addMerchant(merchant);
+
+            $scope.merchantName = $scope.merchantAddress = "";
+        }
+
+        // Adds a new product
+        $scope.addProduct = function() {
+
+            if ($scope.chosenMerchant == 'none') {
+                alert("Choose a merchant.");
+                return;
+            }
+            if (!$scope.productId) {
+                alert("Provide the product id.");
+                return;
+            }
+            if (!$scope.productName) {
+                alert("Provide the product name.");
+                return;
+            }            
+            if (!$scope.productPrice) {
+                alert("Provide the product price.");
+                return;
+            }
+            if (!$scope.productInitialStock) {
+                alert("Provide the product initial stock.");
+                return;
+            }         
+
+            var product = new Product($scope.productName, $scope.productId, $scope.productPrice, $scope.productInitialStock);
+
+            blockchainRegistrationService.registerProduct(product, $scope.chosenMerchant, dataKeepingService.getContract());
+
+            dataKeepingService.addProduct(product, $scope.chosenMerchant);
+
+            $scope.chosenMerchant = 'none';
+            $scope.productId = $scope.productName = $scope.productPrice = $scope.productInitialStock = "";   
+        }
+
+        // Loads all products registered by a merchant
+        $scope.loadMerchantProducts = function() {
+
+             if ($scope.chosenMerchant == 'none') {
+                alert("Choose a merchant.");
+                return;
+            }
+
+            $scope.merchantProducts = dataKeepingService.getProductsByMerchant($scope.chosenMerchant);
+        }
+
+        // Removes a product from blockchain
+        $scope.removeProduct = function(productId, merchant) {
+
+            blockchainRegistrationService.removeProduct(productId, merchant, dataKeepingService.getContract());
+
+            dataKeepingService.removeProduct(productId, merchant);
+        }
+
+        // Performs a purchase
+        $scope.buy = function(productId, price, merchant) {
+
+            if (!$scope.customerAddress) {
+                alert("Provide the buyer address.");
+                return;
+            }
+
+            blockchainRegistrationService.buy(productId, price, $scope.customerAddress, dataKeepingService.getContract());
+            dataKeepingService.notifyPurchase(productId, merchant, $scope.customerAddress, 1);
+        }
+
+        $scope.loadBalanceFromBlockchain = function() {
+
+            if ($scope.chosenMerchant == 'none') {
+                alert("Choose a merchant.");
+                return;
+            }
+
+            blockchainRegistrationService.loadBalance($scope.chosenMerchant, dataKeepingService.getContract());
+        }
+    });
+
+    // Configures the templates exhibitions
+    app.config([ '$routeProvider', function($routeProvider) {
+
+        $routeProvider
+        .when('/newMerchant', {
+            templateUrl : 'merchantRegistration.html',
+            controller : 'ShopfrontController'
+        })
+        .when('/purchase', {
+            templateUrl : 'purchase.html',
+            controller : 'ShopfrontController'
+        }) 
+        .when('/newProduct', {
+            templateUrl : 'productRegistration.html',
+            controller : 'ShopfrontController'
+        }) 
+        .when('/manageProducts', {
+            templateUrl : 'manageProducts.html',
+            controller : 'ShopfrontController'
+        })  
+        .when('/checkPurchases', {
+            templateUrl : 'checkPurchases.html',
+            controller : 'ShopfrontController'
+        })  
+        .when('/currentBalanceFromBlockchain', {
+            templateUrl : 'currentBalanceFromBlockchain.html',
+            controller : 'ShopfrontController'
+        })          
+        .when('/showRegisteredMerchants', {
+            templateUrl : 'showRegisteredMerchants.html',
+            controller : 'ShopfrontController'
+        });
+    }]);
+
+</script>
+
+</head>
+<body>
+
+
+<div ng-app="app" ng-controller="ShopfrontController as ShopfrontController" data-ng-init="loadContractData()" class="container">
+
+<div>
+
+    <h3>
+        <b>Actions</b>
+    </h3>
+
+    <ul class="nav">
+        <li><a href="#/newMerchant"> New Merchant</a>
+        <li><a href="#/showRegisteredMerchants"> Show Registered Merchants </a>
+        <li><a href="#/newProduct"> New Product </a>        
+        <li><a href="#/manageProducts"> Manage Products </a>        
+        <li><a href="#/purchase"> Purchase </a>        
+        <li><a href="#/checkPurchases"> See All Purchases </a>
+        <li><a href="#/currentBalanceFromBlockchain"> Balance from Blockchain </a>
+    </ul>
+
+    <br><br>
+
+    <div class="container">
+        <ng-view></ng-view>
+    </div>
+
+</div>
+<div id="status"></div>
+</div>
+</body>
+</html>

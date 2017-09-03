@@ -1,0 +1,8 @@
+<h3>Check Current Balance from Blockchain</h3>
+
+<br><br>
+
+<select id="chosenMerchant" ng-change="loadBalanceFromBlockchain()" ng-model="chosenMerchant" class="form-control" ng-init="chosenMerchant='none'">
+	<option value="none">Select Merchant</option> 
+	<option ng-repeat="merchant in merchants" value="{{merchant.merchantAddress}}">{{merchant.merchantName}}</option>
+</select>	

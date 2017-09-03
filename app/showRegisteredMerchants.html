@@ -1,0 +1,19 @@
+<h3> Show Registered Merchants </h3>
+
+  <table>
+	<tr>
+		<td><b>Merchant Name</b></td>	
+		<td><b>Merchant Address</b></td>
+		<td></td>
+	</tr>
+    <tbody>
+      <tr ng-repeat="merchant in merchants">
+        <td>{{merchant.merchantName}}</td>
+        <td>{{merchant.merchantAddress}}</td>
+		<td>
+			<button ng-click="deleteMerchant(merchant.merchantAddress)" class="button">remove</button>
+		</td>
+
+      </tr>
+    </tbody>
+  </table>

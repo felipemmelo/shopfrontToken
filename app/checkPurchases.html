@@ -1,0 +1,27 @@
+<h3>All Purchases</h3>
+
+<br><br>
+
+<table>
+	
+	<tr>
+		<td><b>Product Id</b></td>
+		<td><b>Product Name</b></td>
+		<td><b>Product Price</b></td>
+		<td><b>Initial Stock</b></td>
+		<td><b>Current Stock</b></td>
+		<td><b>Buyer</b></td>
+		<td><b>Units</b></td>		
+	</tr>
+
+	<tbody>
+		<tr ng-repeat="purchase in purchases">
+			<td>{{purchase.product.productId}}</td>
+			<td>{{purchase.product.productName}}</td>
+			<td>{{purchase.product.productPrice}}</td>
+			<td>{{purchase.product.productInitialStock}}</td>
+			<td>{{purchase.product.productCurrentStock}}</td>				
+			<td>{{purchase.buyer}}</td>
+			<td>{{purchase.units}}</td>
+		</tr>
+	</tbody>

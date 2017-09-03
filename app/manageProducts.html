@@ -1,0 +1,35 @@
+<h3>Manage Products</h3>
+
+<br><br>
+
+<select id="chosenMerchant" ng-change="loadMerchantProducts()" ng-model="chosenMerchant" class="form-control" ng-init="chosenMerchant='none'">
+	<option value="none">Select Merchant</option> 
+	<option ng-repeat="merchant in merchants" value="{{merchant.merchantAddress}}">{{merchant.merchantName}}</option>
+</select>	
+
+<table>
+	
+	<tr>
+		<td><b>Id</b></td>
+		<td><b>Name</b></td>
+		<td><b>Price</b></td>
+		<td><b>Initial Stock</b></td>
+		<td><b>Current Stock</b></td>
+		<td></td>
+	</tr>
+
+	<tbody>
+		<tr ng-repeat="(productId,productInstance) in merchantProducts">
+			<td>{{productId}}</td>
+			<td>{{productInstance.productName}}</td>
+			<td>{{productInstance.productPrice}}</td>
+			<td>{{productInstance.productInitialStock}}</td>
+			<td>{{productInstance.productCurrentStock}}</td>				
+			<td>
+				<button class="button" ng-click="removeProduct(productId,chosenMerchant)">remove</button>
+			</td>
+		</tr>
+	</tbody>
+
+</table>
+

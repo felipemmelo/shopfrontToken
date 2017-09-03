@@ -1,0 +1,23 @@
+{
+  "name": "shopfrontwebpack",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "create-html": "^3.1.0",
+    "file-loader": "^0.11.2",
+    "truffle": "^3.4.9",
+    "webpack": "^3.5.5"
+  },
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "jquery": "^3.2.1",
+    "truffle-contract": "^2.0.5",
+    "web3": "^0.20.1"
+  }
+}

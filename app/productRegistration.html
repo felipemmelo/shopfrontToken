@@ -1,0 +1,26 @@
+<h3> Add Product </h3>
+
+<br><br>
+
+<select id="chosenMerchant" ng-model="chosenMerchant" class="form-control" ng-init="chosenMerchant='none'">
+	<option value="none">Select Merchant</option> 
+	<option ng-repeat="merchant in merchants" value="{{merchant.merchantAddress}}">{{merchant.merchantName}}</option>
+</select>	
+
+<table>
+
+	<tr>
+		<td><b>Id</b></td>
+		<td><b>Name</b></td>
+		<td><b>Price</b></td>
+		<td><b>Stock</b></td>
+		<td></td>
+	</tr>
+	<tr>
+		<td><input type="text" id="productId" ng-model="productId" value=""></td>
+		<td><input type="text" id="productName" ng-model="productName" value=""></td>
+		<td><input type="text" id="productPrice" ng-model="productPrice" value=""></td>
+		<td><input type="text" id="productInitialStock" ng-model="productInitialStock" value=""></td>
+		<td><button type="button" class="button" ng-click="addProduct()">Add</button></td>
+	</tr>
+</table>
